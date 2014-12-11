@@ -245,19 +245,27 @@ rename_map = {}
 with codecs.open(procmon_log_name, 'r', encoding='utf-8-sig') as csvfile:
     first_time = None
     last_time = None
+    time_col_idx = None
+    op_col_idx = None
+    path_col_idx = None
+    detail_col_idx = None
     reader = csv.reader(csvfile, delimiter=',', quotechar='"')
     row_idx = 0
     rename_re = re.compile('.*FileName: (.+)$')
     for row in reader:
         row_idx += 1
         if row_idx == 1:
+            time_col_idx = row.index("Time of Day")
+            op_col_idx = row.index("Operation")
+            path_col_idx = row.index("Path")
+            detail_col_idx = row.index("Detail")
             continue
-        last_time = row[0]
+        last_time = row[time_col_idx]
         if first_time == None:
             first_time = last_time
-        if row[3] == 'SetRenameInformationFile':
-            old_name = row[4]
-            data = row[6]
+        if row[op_col_idx] == 'SetRenameInformationFile':
+            old_name = row[path_col_idx]
+            data = row[detail_col_idx]
             m = rename_re.match(data)
             if m:
                 new_name = m.group(1)
@@ -276,13 +284,18 @@ with open(procmon_file_filter_name, 'r') as csvfile:
     idb_origin_re = re.compile(r'.*\\([^\\]+)\\IndexedDB\\([^\\]+).*$')
     reader = csv.reader(csvfile, delimiter=',', quotechar='"')
     num_ops = 0
-    path_col_idx = 11
-    read_bytes_col_idx = 6
-    write_bytes_col_idx = 7
+    path_col_idx = None
+    read_bytes_col_idx = None
+    write_bytes_col_idx = None
     for row in reader:
         num_ops += 1
         # First two rows are summary data
-        if num_ops <= 2:
+        if num_ops == 1:
+            path_col_idx = row.index("Path")
+            read_bytes_col_idx = row.index("Read Bytes")
+            write_bytes_col_idx = row.index("Write Bytes")
+            continue
+        if num_ops == 2:
             continue
         path = row[path_col_idx]
         if IgnoreFile(path):

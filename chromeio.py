@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import codecs
 import csv
 import datetime
 import glob
@@ -241,7 +242,7 @@ def PrintStats():
 
 duration = None
 rename_map = {}
-with open(procmon_log_name, 'r') as csvfile:
+with codecs.open(procmon_log_name, 'r', encoding='utf-8-sig') as csvfile:
     first_time = None
     last_time = None
     reader = csv.reader(csvfile, delimiter=',', quotechar='"')

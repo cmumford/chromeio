@@ -136,14 +136,14 @@ categories = [
     other
 ]
 
-idb_categories = {}
+idb_origin_categories = {}
 
-def AddIdbWrite(origin, bytes_read, bytes_written):
-    if origin in idb_categories:
-        category = idb_categories[origin]
+def AddIDBOriginIO(origin, bytes_read, bytes_written):
+    if origin in idb_origin_categories:
+        category = idb_origin_categories[origin]
     else:
         category = Category(origin, total)
-        idb_categories[origin] = category
+        idb_origin_categories[origin] = category
     category.Increment(bytes_read, bytes_written)
 
 def GetCategory(path):
@@ -328,7 +328,7 @@ with open(procmon_file_filter_name, 'r') as csvfile:
                 print path
             assert m
             name = '%s-%s' % (m.group(1), m.group(2))
-            AddIdbWrite(name, read_bytes, write_bytes)
+            AddIDBOriginIO(name, read_bytes, write_bytes)
 
 if len(counted_files):
     print
@@ -367,6 +367,5 @@ else:
     print
     print "IndexedDB:"
     print "=========="
-    for origin in idb_categories.keys():
-        category = idb_categories[origin]
+    for category in sorted(idb_origin_categories.values(), key=attrgetter('written'), reverse=True):
         category.Print(60)

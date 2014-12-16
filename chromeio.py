@@ -346,7 +346,7 @@ if output_csv:
         category.PrintCsv()
 else:
     print
-    print "Categories:"
+    print "Categories (Writes):"
     print "==========="
     col_width = max(len(category.name) for category in categories)
     for category in sorted(categories, key=attrgetter('written'), reverse=True):
@@ -358,10 +358,10 @@ else:
     write_gb_per_day = (write_bytes_per_sec * seconds_per_day) / 1024.0/1024.0/1024.0
     read_bytes_per_sec = float(total.read) / duration.seconds
     read_gb_per_day = (read_bytes_per_sec * seconds_per_day) / 1024.0/1024.0/1024.0
-    print "Over %s, Chrome is" % duration
-    print "  reading %.1f Bps (%.1f GB/day)" % \
+    print "Over %s, Chrome is:" % duration
+    print "  Reading %.1f Bps (%.1f GB/day)" % \
             (read_bytes_per_sec, read_gb_per_day)
-    print "  writing %.1f Bps (%.1f GB/day)" % \
+    print "  Writing %.1f Bps (%.1f GB/day)" % \
             (write_bytes_per_sec, write_gb_per_day)
 
     print

@@ -280,6 +280,10 @@ with codecs.open(procmon_log_name, 'r', encoding='utf-8-sig') as csvfile:
 
 counted_files = {}
 
+# Change from "null_category" to one of the others to write out counts
+# for each file in that category
+counted_category = null_category
+
 with open(procmon_file_filter_name, 'r') as csvfile:
     idb_origin_re = re.compile(r'.*\\([^\\]+)\\IndexedDB\\([^\\]+).*$')
     reader = csv.reader(csvfile, delimiter=',', quotechar='"')
@@ -314,9 +318,7 @@ with open(procmon_file_filter_name, 'r') as csvfile:
                 category = GetCategory(path)
             else:
                 non_renamed_temp_files.add(path)
-        # Change from "null_category" to one of the others to write out counts
-        # for each file in that category
-        if category == null_category:
+        if category == counted_category:
             if path in counted_files:
                 counted_files[path] += write_bytes
             else:

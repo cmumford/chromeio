@@ -18,7 +18,7 @@ from datetime import datetime
 # out the main view to one CSV file, and then the File Summary to a second CSV
 # file. Use this program to categorize the results.
 #
-# python chromeio.py
+# python chromeio.py [<file_filter.csv>] [<log_file.csv>]
 #
 # The two data file names are hard-coded below, but can be specified on the
 # command line.

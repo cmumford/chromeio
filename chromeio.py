@@ -171,6 +171,8 @@ def GetCategory(path):
         return local_state
     elif 'Shortcuts' in b:
         return shortcuts
+    elif '\\CRX_INSTALL' in path:
+        return crx_install
     elif '\\Extensions\\' in path or \
          '\\Extension Rules\\' in path or \
          '\\Extension State\\' in path or \
@@ -178,8 +180,6 @@ def GetCategory(path):
         return extensions
     elif '\\GCM Store\\' in path:
         return gcm_store
-    elif '\\CRX_INSTALL' in path:
-        return crx_install
     elif '\\Cache\\' in path:
         return cache
     elif '\\File System\\' in path:

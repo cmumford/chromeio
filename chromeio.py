@@ -214,7 +214,8 @@ def GetDirSize(start_path):
     return total_size
 
 def IgnoreFile(file_path):
-    return 'chrome.dll' in file_path
+    (d, f) = os.path.split(file_path)
+    return f == 'chrome.dll' or f == 'chrome_debug.log'
 
 def GetNumLevelDBOpens(log_dir):
     files = {}

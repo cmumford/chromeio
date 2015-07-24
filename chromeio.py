@@ -35,6 +35,12 @@ if sys.argv > 1:
 if sys.argv > 2:
     procmon_log_name = sys.argv[2]
 
+sort_by = 'written'
+if sort_by == 'written':
+    sort_title = 'Written'
+else:
+    sort_title = 'Read'
+
 class Category(object):
     def __init__(self, name, total=None):
         self.name = name
@@ -55,16 +61,27 @@ class Category(object):
         else:
             return "%d" % num_bytes
 
+    @staticmethod
+    def GetBytesString(amount):
+        return "%ld (%s)" % (amount, Category.GetFriendlySize(amount))
+
+    @staticmethod
+    def GetAmountString(amount, total):
+        return "%s (%.1f%%)" % (Category.GetBytesString(amount),
+                                100.0 * amount / total)
+
+    @staticmethod
+    def GetBothAmounts(read, written, total_read, total_written):
+        return "R[%s], W[%s]" % (Category.GetAmountString(read, total_read),
+                               Category.GetAmountString(written, total_written))
+
     def Print(self, name_col_width):
         if self.total:
-            print "%s: %ld (%s) (%.1f%%)" % (self.name.ljust(name_col_width),
-                                        self.written,
-                                        Category.GetFriendlySize(self.written),
-                                        100.0 * self.written / total.written)
+            print "%s: %s" % (self.name.ljust(name_col_width),
+                          Category.GetBothAmounts(self.read, self.written, total.read, total.written))
         else:
-            print "%s: %ld (%s)" % (self.name.ljust(name_col_width),
-                                    self.written,
-                                    Category.GetFriendlySize(self.written))
+            print "%s: %s" % (self.name.ljust(name_col_width),
+                              Category.GetBytesString(self.written))
 
     def PrintCsv(self):
         print "%s,%ld" % (self.name, self.written)
@@ -215,7 +232,7 @@ def GetDirSize(start_path):
 
 def IgnoreFile(file_path):
     (d, f) = os.path.split(file_path)
-    return f in ['chrome.dll', 'chrome_debug.log', '$LogFile']
+    return f in ['chrome.dll', 'chrome_debug.log', '$LogFile', '$Mft']
 
 def GetNumLevelDBOpens(log_dir):
     files = {}
@@ -284,6 +301,7 @@ counted_files = {}
 # Change from "null_category" to one of the others to write out counts
 # for each file in that category
 counted_category = null_category
+counted_category = extensions
 
 with open(procmon_file_filter_name, 'r') as csvfile:
     idb_origin_re = re.compile(r'.*\\([^\\]+)\\IndexedDB\\([^\\]+).*$')
@@ -320,10 +338,14 @@ with open(procmon_file_filter_name, 'r') as csvfile:
             else:
                 non_renamed_temp_files.add(path)
         if category == counted_category:
-            if path in counted_files:
-                counted_files[path] += write_bytes
+            if sort_by == 'written':
+                amount = write_bytes
             else:
-                counted_files[path] = write_bytes
+                amount = read_bytes
+            if path in counted_files:
+                counted_files[path] += amount
+            else:
+                counted_files[path] = amount
         category.Increment(read_bytes, write_bytes)
         if category == idb:
             m = idb_origin_re.match(path)
@@ -335,24 +357,24 @@ with open(procmon_file_filter_name, 'r') as csvfile:
 
 if len(counted_files):
     print
-    print "Counted files:"
-    print "=============="
+    print "Counted files (%s):" % sort_title
+    print "============================="
     total_counted = 0
     sorted_files = sorted(counted_files.items(), key=itemgetter(1), reverse=True)
-    for path, written in sorted_files:
-        total_counted += written
-        print "%ld B: %s" % (written, path)
+    for path, amount in sorted_files:
+        total_counted += amount
+        print "%ld B: %s" % (amount, path)
     print "Total counted: %ld" % total_counted
 
 if output_csv:
-    for category in sorted(categories, key=attrgetter('written'), reverse=True):
+    for category in sorted(categories, key=attrgetter(sort_by), reverse=True):
         category.PrintCsv()
 else:
     print
-    print "Categories (Writes):"
-    print "==========="
+    print "Categories (%s):" % sort_title
+    print "=========================="
     col_width = max(len(category.name) for category in categories)
-    for category in sorted(categories, key=attrgetter('written'), reverse=True):
+    for category in sorted(categories, key=attrgetter(sort_by), reverse=True):
         category.Print(col_width)
     total.Print(col_width)
     print
@@ -370,5 +392,5 @@ else:
     print
     print "IndexedDB:"
     print "=========="
-    for category in sorted(idb_origin_categories.values(), key=attrgetter('written'), reverse=True):
+    for category in sorted(idb_origin_categories.values(), key=attrgetter(sort_by), reverse=True):
         category.Print(60)

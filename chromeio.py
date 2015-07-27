@@ -13,9 +13,9 @@ import time
 from time import mktime
 from datetime import datetime
 
-# This script counts disk I/O (currently only "O") on Windows. Use the Process
-# Monitor tool to capture all I/O for a given process (chrome.exe). Then save
-# out the main view to one CSV file, and then the File Summary to a second CSV
+# This script counts disk I/O on Windows. Use the Process Monitor tool to
+# capture all I/O for a given process (chrome.exe). Then save out the main
+# view to one CSV file, and then the File Summary to a second CSV
 # file. Use this program to categorize the results.
 #
 # python chromeio.py [<file_filter.csv>] [<log_file.csv>]
@@ -112,6 +112,8 @@ session_storage = Category("Session storage", total)
 sqlite_temp = Category("Sqlite temp", total)
 sync_data = Category("Sync Data", total)
 sync_extension_settings = Category("Sync Extension Settings", total)
+sync_app_settings = Category("Sync App Settings", total)
+local_app_settings = Category("Local App Settings", total)
 temp = Category("Temp", total)
 shortcuts = Category("Shortcuts", total)
 safe_browsing = Category("Safe Browsing", total)
@@ -123,6 +125,13 @@ favicon = Category("Favicons", total)
 pnacl = Category("PNACL", total)
 bookmarks = Category("Bookmarks", total)
 crx_install = Category("CRX Install", total)
+visited_links = Category("Visited Links", total)
+web_data = Category("Web Data", total)
+history = Category("History", total)
+quota_manager = Category("Quota Manager", total)
+network_action_predictor = Category("Network Action Predictor", total)
+current_sessions = Category("Current Sessions", total)
+current_tabs = Category("Current Tabs", total)
 
 categories = [
     bookmarks,
@@ -149,7 +158,16 @@ categories = [
     sqlite_temp,
     sync_data,
     sync_extension_settings,
+    sync_app_settings,
+    local_app_settings,
     temp,
+    visited_links,
+    web_data,
+    history,
+    quota_manager,
+    network_action_predictor,
+    current_sessions,
+    current_tabs,
     other
 ]
 
@@ -168,7 +186,7 @@ def GetCategory(path):
     b = os.path.basename(path)
     if 'etilqs' in path:
         return sqlite_temp
-    elif b.startswith('pnacl'):
+    elif b.startswith('pnacl') or 'PnaclTranslationCache' in path:
         return pnacl
     elif 'Index-journal' == b:
         return index_journal
@@ -191,9 +209,10 @@ def GetCategory(path):
     elif '\\CRX_INSTALL' in path:
         return crx_install
     elif '\\Extensions\\' in path or \
-         '\\Extension Rules\\' in path or \
+         '\\Extension Rules' in path or \
          '\\Extension State\\' in path or \
-         '\\Local Extension Settings\\' in path:
+         '\\Local Extension Settings\\' in path or \
+         '\\Managed Extension Settings\\' in path:
         return extensions
     elif '\\GCM Store\\' in path:
         return gcm_store
@@ -211,10 +230,28 @@ def GetCategory(path):
         return sync_data
     elif '\\Sync Extension Settings\\' in path:
         return sync_extension_settings
+    elif '\\Sync App Settings\\' in path:
+        return sync_app_settings
+    elif '\\Local App Settings\\' in path:
+        return local_app_settings
     elif '\\Session Storage\\' in path:
         return session_storage
     elif '\\Local Storage\\' in path:
         return local_storage
+    elif '\\Visited Links' in path:
+        return visited_links
+    elif '\\Web Data' in path:
+        return web_data
+    elif '\\History' in path:
+        return history
+    elif '\\QuotaManager' in path:
+        return quota_manager
+    elif '\\Network Action Predictor' in path:
+        return network_action_predictor
+    elif '\\Current Session' in path:
+        return current_sessions
+    elif '\\Current Tabs' in path:
+        return current_tabs
     elif is_cookies_file(path):
         return cookies
     elif ext == '.tmp' or ext == '.temp' or "\\Temp\\" in path:

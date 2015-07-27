@@ -16,24 +16,21 @@ Process Monitor, so at present this is a Windows only tool.
    rule: "Process Name + contains + chrome".
 2. Press the OK button to begin capturing I/O events.
 3. Uncheck File&#8594;Capture Events to cease the capture process.
-4. Select File&#8594;Save (to PML)
 
 ## Analyzing I/O
 
-Once you have a capture file to analyze you will need to export two reports:
+Once you have a capture to analyze you will need to export the log as a CSV file.
 
 1. File&#8594;Save (CSV).
-2. Tools&#8594;File Summary..., Press the "Save" button to export the file
-   summary to a second CSV file.
 
-Now that you have two CSV files you are ready to run this tool.
+Now that you have the CSV file you are ready to run this tool.
 
-    python chromeio &lt;file_filter.csv&gt; &lt;monitor_log.csv&gt;
+    python chromeio &lt;path/to/Logfile.CSV&gt;
 
 Here is an example report:
 
 <pre>
-python chromeio.py file_summary.csv path/to/Logfile.CSV
+python chromeio.py path/to/Logfile.CSV
 
 Categories:
 ===========

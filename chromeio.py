@@ -5,7 +5,7 @@ import csv
 import datetime
 import glob
 import locale
-from operator import attrgetter, itemgetter
+from operator import itemgetter, methodcaller
 import os
 import re
 import sys
@@ -15,42 +15,64 @@ from datetime import datetime
 
 # This script counts disk I/O on Windows. Use the Process Monitor tool to
 # capture all I/O for a given process (chrome.exe). Then save out the main
-# view to one CSV file, and then the File Summary to a second CSV
-# file. Use this program to categorize the results.
+# view to a CSV file. Use this program to categorize the results.
 #
-# python chromeio.py [<file_filter.csv>] [<log_file.csv>]
+# python chromeio.py <log_file.csv>
 #
-# The two data file names are hard-coded below, but can be specified on the
-# command line.
 
 output_csv = False
 # Process Monitor -> File -> Save... (to CSV) to this file.
-procmon_log_name = 'ProcessMonitorLogfile.csv'
-# Process Monitor -> Tools -> File Summary... -> Save to this file.
-procmon_file_filter_name = 'ProcessMonitorFileFilter.csv'
+if len(sys.argv) < 2:
+    print >> sys.stderr, "Must supply the Process Monitor log file"
+    sys.exit(1)
 
-if sys.argv > 1:
-    procmon_file_filter_name = sys.argv[1]
+procmon_log_name = sys.argv[1]
 
-if sys.argv > 2:
-    procmon_log_name = sys.argv[2]
-
-sort_by = 'written'
-if sort_by == 'written':
+sort_by = 'Written'
+if sort_by == 'Written':
     sort_title = 'Written'
 else:
     sort_title = 'Read'
 
-class Category(object):
-    def __init__(self, name, total=None):
-        self.name = name
-        self.total = total
-        self.read = 0
-        self.written = 0
+class FileTotals(object):
+    def __init__(self, path, read, written):
+        self.path = path
+        self.read = read
+        self.written = written
 
     def Increment(self, read, written):
         self.read += read
         self.written += written
+
+    def Read(self):
+        return self.read
+
+    def Written(self):
+        return self.written
+
+class Category(object):
+    def __init__(self, name, total=None):
+        self.name = name
+        self.files = {}
+        self.total = total
+
+    def AppendFileTotals(self, file_totals):
+        if file_totals.path in self.files:
+            # Append to existing entry
+            existing_entry = self.files[file_totals.path]
+            existing_entry.read += file_totals.read
+            existing_entry.written += file_totals.written
+        else:
+            self.files[file_totals.path] = file_totals
+
+    def Increment(self, path, read, written):
+        if path in self.files:
+            self.files[path].Increment(read, written)
+        else:
+            self.files[path] = FileTotals(path, read, written)
+
+    def ExtractPath(self, path):
+        return self.files.pop(path, None)
 
     @staticmethod
     def GetFriendlySize(num_bytes):
@@ -78,13 +100,33 @@ class Category(object):
     def Print(self, name_col_width):
         if self.total:
             print "%s: %s" % (self.name.ljust(name_col_width),
-                          Category.GetBothAmounts(self.read, self.written, total.read, total.written))
+                          Category.GetBothAmounts(self.Read(), self.Written(),
+                                                  total.Read(), total.Written()))
         else:
             print "%s: %s" % (self.name.ljust(name_col_width),
-                              Category.GetBytesString(self.written))
+                              Category.GetBytesString(self.Written()))
+
+    def Written(self):
+        total_written = 0
+        for f in self.files:
+            total_written += self.files[f].Written()
+        return total_written
+
+    def Read(self):
+        total_read = 0
+        for f in self.files:
+            total_read += self.files[f].Read()
+        return total_read
+
+    def Empty(self):
+        for f in self.files:
+            info = self.files[f]
+            if info.Read() or info.Written():
+                return False
+        return True
 
     def PrintCsv(self):
-        print "%s,%ld" % (self.name, self.written)
+        print "%s,%ld" % (self.name, self.Written())
 
 def is_leveldb_file(fname):
     b = os.path.basename(fname)
@@ -132,6 +174,10 @@ quota_manager = Category("Quota Manager", total)
 network_action_predictor = Category("Network Action Predictor", total)
 current_sessions = Category("Current Sessions", total)
 current_tabs = Category("Current Tabs", total)
+ev = Category("EV", total)
+service_worker = Category("Service Worker", total)
+custom_dictionary = Category("Custom Dictionary", total)
+user_policy = Category("User Policy", total)
 
 categories = [
     bookmarks,
@@ -168,18 +214,22 @@ categories = [
     network_action_predictor,
     current_sessions,
     current_tabs,
+    ev,
+    service_worker,
+    custom_dictionary,
+    user_policy,
     other
 ]
 
 idb_origin_categories = {}
 
-def AddIDBOriginIO(origin, bytes_read, bytes_written):
+def AddIDBOriginIO(origin, path, bytes_read, bytes_written):
     if origin in idb_origin_categories:
         category = idb_origin_categories[origin]
     else:
         category = Category(origin, total)
         idb_origin_categories[origin] = category
-    category.Increment(bytes_read, bytes_written)
+    category.Increment(path, bytes_read, bytes_written)
 
 def GetCategory(path):
     base, ext = os.path.splitext(path)
@@ -211,6 +261,7 @@ def GetCategory(path):
     elif '\\Extensions\\' in path or \
          '\\Extension Rules' in path or \
          '\\Extension State\\' in path or \
+         '\\Extension Activity' in path or \
          '\\Local Extension Settings\\' in path or \
          '\\Managed Extension Settings\\' in path:
         return extensions
@@ -226,7 +277,7 @@ def GetCategory(path):
         return font_cache
     elif '\\GPUCache\\' in path:
         return gpu_cache
-    elif '\\Sync Data\\' in path:
+    elif '\\Sync Data\\' in path or '\\Sync Data Backup\\' in path:
         return sync_data
     elif '\\Sync Extension Settings\\' in path:
         return sync_extension_settings
@@ -252,6 +303,14 @@ def GetCategory(path):
         return current_sessions
     elif '\\Current Tabs' in path:
         return current_tabs
+    elif '\\Service Worker\\' in path:
+        return service_worker
+    elif '\\User Policy' in path:
+        return user_policy
+    elif 'Custom Dictionary' in path:
+        return custom_dictionary
+    elif 'ev_hashes_whitelist.bin' in path:
+        return ev
     elif is_cookies_file(path):
         return cookies
     elif ext == '.tmp' or ext == '.temp' or "\\Temp\\" in path:
@@ -295,8 +354,37 @@ def PrintStats():
     dir_size = GetDirSize(r'D:\src\out\Release\${HOME}\.chrome_dev')
     print "Chrome dir size: %ld, %.1f MB" % (dir_size, dir_size/1024.0/1024.0)
 
+def ParseDetail(detail):
+    items = {}
+    for item in detail.split(', '):
+        if item == 'Paging I/O':
+            items['Paging I/O'] = True
+        elif item == 'Synchronous Paging I/O':
+            items['Synchronous Paging I/O'] = True
+        else:
+            pair = item.split(': ')
+            if len(pair) == 2:
+                items[pair[0]] = pair[1]
+            else:
+                print >> sys.stderr, 'Cannot parse "%s"' % item
+    return items
+
+# Find a path summary and (if found) extract it from it's current category
+# and return it.
+def ExtractFileTotalsFromCategory(path):
+    for category in categories:
+        file_totals = category.ExtractPath(path)
+        if file_totals:
+            return file_totals
+    return None
+
+# Change from "null_category" to one of the others to write out counts
+# for each file in that category
+counted_category = null_category
+counted_category = other
+
 duration = None
-rename_map = {}
+idb_origin_re = re.compile(r'.*\\([^\\]+)\\IndexedDB\\([^\\]+).*$')
 with codecs.open(procmon_log_name, 'r', encoding='utf-8-sig') as csvfile:
     first_time = None
     last_time = None
@@ -304,6 +392,7 @@ with codecs.open(procmon_log_name, 'r', encoding='utf-8-sig') as csvfile:
     op_col_idx = None
     path_col_idx = None
     detail_col_idx = None
+    result_col_idx = None
     reader = csv.reader(csvfile, delimiter=',', quotechar='"')
     row_idx = 0
     rename_re = re.compile('.*FileName: (.+)$')
@@ -314,111 +403,85 @@ with codecs.open(procmon_log_name, 'r', encoding='utf-8-sig') as csvfile:
             op_col_idx = row.index("Operation")
             path_col_idx = row.index("Path")
             detail_col_idx = row.index("Detail")
+            result_col_idx = row.index("Result")
             continue
         last_time = row[time_col_idx]
         if first_time == None:
             first_time = last_time
-        if row[op_col_idx] == 'SetRenameInformationFile':
-            old_name = row[path_col_idx]
-            data = row[detail_col_idx]
-            m = rename_re.match(data)
-            if m:
-                new_name = m.group(1)
-                rename_map[old_name] = new_name
-            else:
-                # A file was renamed, but we couldn't find out what to!
-                assert False
-
+        path = row[path_col_idx]
+        if 'startup_complete.txt' in path:
+            break
+        if IgnoreFile(path):
+            continue
+        if row[result_col_idx] == 'SUCCESS':
+            write_bytes = 0
+            read_bytes = 0
+            op = row[op_col_idx]
+            if op == 'IRP_MJ_SET_INFORMATION':
+                detail = ParseDetail(row[detail_col_idx])
+                if 'Type' in detail and detail['Type'] == 'SetRenameInformationFile':
+                    file_totals = ExtractFileTotalsFromCategory(path)
+                    if file_totals:
+                        # Move info totals for old file to new file
+                        new_name = detail['FileName']
+                        category = GetCategory(new_name)
+                        file_totals.path = new_name
+                        category.AppendFileTotals(file_totals)
+            elif op == 'IRP_MJ_WRITE' or op == 'FASTIO_WRITE':
+                detail = ParseDetail(row[detail_col_idx])
+                write_bytes = int(detail['Length'].replace(',', ''))
+            elif op == 'IRP_MJ_READ' or op == 'FASTIO_READ':
+                detail = ParseDetail(row[detail_col_idx])
+                read_bytes = int(detail['Length'].replace(',', ''))
+            if read_bytes or write_bytes:
+                total.Increment(path, read_bytes, write_bytes)
+                category = GetCategory(path)
+                category.Increment(path, read_bytes, write_bytes)
+                if category == idb:
+                    m = idb_origin_re.match(path)
+                    if not m:
+                        print path
+                    assert m
+                    name = '%s-%s' % (m.group(1), m.group(2))
+                    AddIDBOriginIO(name, path, read_bytes, write_bytes)
     start = datetime.strptime(re.sub(r'\.\d+', '', first_time), "%I:%M:%S %p")
     end = datetime.strptime(re.sub(r'\.\d+', '', last_time), "%I:%M:%S %p")
     duration = end - start
 
-counted_files = {}
-
-# Change from "null_category" to one of the others to write out counts
-# for each file in that category
-counted_category = null_category
-counted_category = extensions
-
-with open(procmon_file_filter_name, 'r') as csvfile:
-    idb_origin_re = re.compile(r'.*\\([^\\]+)\\IndexedDB\\([^\\]+).*$')
-    reader = csv.reader(csvfile, delimiter=',', quotechar='"')
-    num_ops = 0
-    path_col_idx = None
-    read_bytes_col_idx = None
-    write_bytes_col_idx = None
-    for row in reader:
-        num_ops += 1
-        # First two rows are summary data
-        if num_ops == 1:
-            path_col_idx = row.index("Path")
-            read_bytes_col_idx = row.index("Read Bytes")
-            write_bytes_col_idx = row.index("Write Bytes")
-            continue
-        if num_ops == 2:
-            continue
-        path = row[path_col_idx]
-        if IgnoreFile(path):
-            continue
-        read_bytes = int(row[read_bytes_col_idx].replace(',', ''))
-        write_bytes = int(row[write_bytes_col_idx].replace(',', ''))
-        if write_bytes == 0 and write_bytes == 0:
-            continue
-        total.Increment(read_bytes, write_bytes)
-
-        non_renamed_temp_files = set()
-        category = GetCategory(path)
-        if category == temp:
-            if path in rename_map:
-                path = rename_map[path]
-                category = GetCategory(path)
-            else:
-                non_renamed_temp_files.add(path)
-        if category == counted_category:
-            if sort_by == 'written':
-                amount = write_bytes
-            else:
-                amount = read_bytes
-            if path in counted_files:
-                counted_files[path] += amount
-            else:
-                counted_files[path] = amount
-        category.Increment(read_bytes, write_bytes)
-        if category == idb:
-            m = idb_origin_re.match(path)
-            if not m:
-                print path
-            assert m
-            name = '%s-%s' % (m.group(1), m.group(2))
-            AddIDBOriginIO(name, read_bytes, write_bytes)
-
-if len(counted_files):
-    print
-    print "Counted files (%s):" % sort_title
-    print "============================="
-    total_counted = 0
-    sorted_files = sorted(counted_files.items(), key=itemgetter(1), reverse=True)
-    for path, amount in sorted_files:
-        total_counted += amount
-        print "%ld B: %s" % (amount, path)
-    print "Total counted: %ld" % total_counted
+print
+print "Counted files (%s):" % sort_title
+print "============================="
+total_counted = 0
+counted_files = []
+for info in counted_category.files:
+    counted_files.append(counted_category.files[info])
+sorted_files = sorted(counted_files, key=methodcaller(sort_by), reverse=True)
+for info in sorted_files:
+    if sort_by == 'Written':
+        amount = info.Written()
+    else:
+        amount = info.Read()
+    total_counted += amount
+    print "%ld B: %s" % (amount, info.path)
+print "Total counted: %ld" % total_counted
 
 if output_csv:
-    for category in sorted(categories, key=attrgetter(sort_by), reverse=True):
+    for category in sorted(categories, key=methodcaller(sort_by), reverse=True):
         category.PrintCsv()
 else:
     print
     print "Categories (%s):" % sort_title
     print "=========================="
     col_width = max(len(category.name) for category in categories)
-    for category in sorted(categories, key=attrgetter(sort_by), reverse=True):
-        category.Print(col_width)
+    for category in sorted(categories, key=methodcaller(sort_by), reverse=True):
+        if not category.Empty():
+            category.Print(col_width)
     total.Print(col_width)
     print
     seconds_per_day = 86400
-    write_bytes_per_sec = float(total.written) / duration.seconds
+    write_bytes_per_sec = float(total.Written()) / duration.seconds
     write_gb_per_day = (write_bytes_per_sec * seconds_per_day) / 1024.0/1024.0/1024.0
-    read_bytes_per_sec = float(total.read) / duration.seconds
+    read_bytes_per_sec = float(total.Read()) / duration.seconds
     read_gb_per_day = (read_bytes_per_sec * seconds_per_day) / 1024.0/1024.0/1024.0
     print "Over %s, Chrome is:" % duration
     print "  Reading %.1f Bps (%.1f GB/day)" % \
@@ -429,5 +492,5 @@ else:
     print
     print "IndexedDB:"
     print "=========="
-    for category in sorted(idb_origin_categories.values(), key=attrgetter(sort_by), reverse=True):
+    for category in sorted(idb_origin_categories.values(), key=methodcaller(sort_by), reverse=True):
         category.Print(60)

@@ -458,7 +458,8 @@ for info in sorted_files:
     else:
         amount = info.Read()
     total_counted += amount
-    print "%ld B: %s" % (amount, info.path)
+    if amount:
+        print "%ld B: %s" % (amount, info.path)
 print "Total counted: %ld" % total_counted
 
 if output_csv:
@@ -470,7 +471,11 @@ else:
     print "=========================="
     col_width = max(len(category.name) for category in categories)
     for category in sorted(categories, key=methodcaller(sort_by), reverse=True):
-        if not category.Empty():
+        if sort_by == 'Written':
+            amount = category.Written()
+        else:
+            amount = category.Read()
+        if amount:
             category.Print(col_width)
     total.Print(col_width)
     print

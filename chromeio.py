@@ -167,7 +167,6 @@ favicon = Category("Favicons", total)
 pnacl = Category("PNACL", total)
 bookmarks = Category("Bookmarks", total)
 crx_install = Category("CRX Install", total)
-visited_links = Category("Visited Links", total)
 web_data = Category("Web Data", total)
 history = Category("History", total)
 quota_manager = Category("Quota Manager", total)
@@ -207,7 +206,6 @@ categories = [
     sync_app_settings,
     local_app_settings,
     temp,
-    visited_links,
     web_data,
     history,
     quota_manager,
@@ -289,11 +287,9 @@ def GetCategory(path):
         return session_storage
     elif '\\Local Storage\\' in path:
         return local_storage
-    elif '\\Visited Links' in path:
-        return visited_links
     elif '\\Web Data' in path:
         return web_data
-    elif '\\History' in path:
+    elif '\\Visited Links' in path or '\\History' in path:
         return history
     elif '\\QuotaManager' in path:
         return quota_manager
@@ -381,7 +377,7 @@ def ExtractFileTotalsFromCategory(path):
 # Change from "null_category" to one of the others to write out counts
 # for each file in that category
 counted_category = null_category
-counted_category = other
+counted_category = history
 
 duration = None
 idb_origin_re = re.compile(r'.*\\([^\\]+)\\IndexedDB\\([^\\]+).*$')

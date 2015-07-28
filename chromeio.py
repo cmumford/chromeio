@@ -171,7 +171,7 @@ web_data = Category("Web Data", total)
 history = Category("History", total)
 quota_manager = Category("Quota Manager", total)
 network_action_predictor = Category("Network Action Predictor", total)
-current_sessions = Category("Current Sessions", total)
+current_session = Category("Current Session", total)
 current_tabs = Category("Current Tabs", total)
 ev = Category("EV", total)
 service_worker = Category("Service Worker", total)
@@ -210,7 +210,7 @@ categories = [
     history,
     quota_manager,
     network_action_predictor,
-    current_sessions,
+    current_session,
     current_tabs,
     ev,
     service_worker,
@@ -296,7 +296,7 @@ def GetCategory(path):
     elif '\\Network Action Predictor' in path:
         return network_action_predictor
     elif '\\Current Session' in path:
-        return current_sessions
+        return current_session
     elif '\\Current Tabs' in path:
         return current_tabs
     elif '\\Service Worker\\' in path:

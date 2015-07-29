@@ -252,7 +252,7 @@ def GetCategory(path):
         return bookmarks
     elif b == 'Preferences' or b == 'Secure Preferences':
         return preferences
-    elif b == 'Local State':
+    elif '\\Local State' in path:
         return local_state
     elif 'Shortcuts' in b:
         return shortcuts

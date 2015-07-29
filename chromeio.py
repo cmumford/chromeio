@@ -177,6 +177,7 @@ ev = Category("EV", total)
 service_worker = Category("Service Worker", total)
 custom_dictionary = Category("Custom Dictionary", total)
 user_policy = Category("User Policy", total)
+top_sites = Category("Top Sites", total)
 
 categories = [
     bookmarks,
@@ -216,6 +217,7 @@ categories = [
     service_worker,
     custom_dictionary,
     user_policy,
+    top_sites,
     other
 ]
 
@@ -285,6 +287,8 @@ def GetCategory(path):
         return local_app_settings
     elif '\\Session Storage\\' in path:
         return session_storage
+    elif '\\Top Sites' in path:
+        return top_sites
     elif '\\Local Storage\\' in path:
         return local_storage
     elif '\\Web Data' in path:

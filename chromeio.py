@@ -328,7 +328,9 @@ def GetDirSize(start_path):
 
 def IgnoreFile(file_path):
     (d, f) = os.path.split(file_path)
-    return f in ['chrome.dll', 'chrome_debug.log', '$LogFile', '$Mft']
+    if 'Windows\\Prefetch' in file_path:
+        return True
+    return f in ['chrome.dll', 'chrome_child.dll', 'chrome_debug.log', '$LogFile', '$Mft']
 
 def GetNumLevelDBOpens(log_dir):
     files = {}

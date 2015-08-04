@@ -238,7 +238,7 @@ def GetCategory(path):
     b = os.path.basename(path)
     if 'etilqs' in path:
         return sqlite_temp
-    elif b.startswith('pnacl') or 'PnaclTranslationCache' in path:
+    if b.startswith('pnacl') or b == 'nacl_validation_cache.bin' or 'PnaclTranslationCache' in path:
         return pnacl
     elif 'Index-journal' == b:
         return index_journal

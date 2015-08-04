@@ -252,7 +252,7 @@ def GetCategory(path):
         return favicon
     elif 'Bookmarks' in path:
         return bookmarks
-    elif b == 'Preferences' or b == 'Secure Preferences':
+    elif b.startswith('Preferences') or b == 'Secure Preferences':
         return preferences
     elif '\\Local State' in path:
         return local_state

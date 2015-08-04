@@ -178,6 +178,7 @@ service_worker = Category("Service Worker", total)
 custom_dictionary = Category("Custom Dictionary", total)
 user_policy = Category("User Policy", total)
 top_sites = Category("Top Sites", total)
+transport_security = Category("Transport Security", total)
 
 categories = [
     bookmarks,
@@ -218,6 +219,7 @@ categories = [
     custom_dictionary,
     user_policy,
     top_sites,
+    transport_security,
     other
 ]
 
@@ -309,6 +311,8 @@ def GetCategory(path):
         return user_policy
     elif 'Custom Dictionary' in path:
         return custom_dictionary
+    elif b.startswith('TransportSecurity'):
+        return transport_security
     elif 'ev_hashes_whitelist.bin' in path:
         return ev
     elif is_cookies_file(path):

@@ -21,7 +21,8 @@ Process Monitor, so at present this is a Windows only tool.
 
 Once you have a capture to analyze you will need to export the log as a CSV file.
 
-1. File&#8594;Save (CSV).
+1. Make sure "Time of Day" is the first column.
+2. File&#8594;Save (CSV).
 
 Now that you have the CSV file you are ready to run this tool.
 

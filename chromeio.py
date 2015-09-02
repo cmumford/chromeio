@@ -34,6 +34,24 @@ if sort_by == 'Written':
 else:
     sort_title = 'Read'
 
+class Amount(object):
+    @staticmethod
+    def ToString(bytes):
+        if bytes >= 1024*1024*1024:
+            return "%.1fGB" % (float(bytes) / 1024 / 1024 / 1024)
+        if bytes >= 1024*1024:
+            return "%.1fMB" % (float(bytes) / 1024 / 1024)
+        if bytes >= 1024:
+            return "%.1fKB" % (float(bytes) / 1024)
+        return "%dB" % bytes
+
+    @staticmethod
+    def PerDay(bytes, duration):
+        seconds_per_day = 86400
+        bytes_per_sec = bytes / duration.seconds
+        bytes_per_day = bytes_per_sec * seconds_per_day
+        return "%s/day" % Amount.ToString(bytes_per_day)
+
 class FileTotals(object):
     def __init__(self, path, read, written):
         self.path = path
@@ -75,33 +93,26 @@ class Category(object):
         return self.files.pop(path, None)
 
     @staticmethod
-    def GetFriendlySize(num_bytes):
-        if num_bytes > 1024*1024:
-            return "%.1f MB" % (num_bytes / 1024.0 / 1024.0)
-        elif num_bytes > 1024:
-            return "%.1f KB" % (num_bytes / 1024.0)
-        else:
-            return "%d" % num_bytes
-
-    @staticmethod
     def GetBytesString(amount):
-        return "%ld (%s)" % (amount, Category.GetFriendlySize(amount))
+        return "%ld=%s" % (amount, Amount.ToString(amount))
 
     @staticmethod
-    def GetAmountString(amount, total):
-        return "%s (%.1f%%)" % (Category.GetBytesString(amount),
-                                100.0 * amount / total)
+    def GetAmountString(amount, total, duration):
+        return "%s=%.1f%%=%s" % (Category.GetBytesString(amount),
+                                100.0 * amount / total,
+                                Amount.PerDay(amount, duration))
 
     @staticmethod
-    def GetBothAmounts(read, written, total_read, total_written):
-        return "R[%s], W[%s]" % (Category.GetAmountString(read, total_read),
-                               Category.GetAmountString(written, total_written))
+    def GetBothAmounts(read, written, total_read, total_written, duration):
+        return "R[%s], W[%s]" % (Category.GetAmountString(read, total_read, duration),
+                               Category.GetAmountString(written, total_written, duration))
 
-    def Print(self, name_col_width):
+    def Print(self, name_col_width, duration):
         if self.total:
             print "%s: %s" % (self.name.ljust(name_col_width),
                           Category.GetBothAmounts(self.Read(), self.Written(),
-                                                  total.Read(), total.Written()))
+                                                  total.Read(), total.Written(),
+                                                  duration))
         else:
             print "%s: %s" % (self.name.ljust(name_col_width),
                               Category.GetBytesString(self.Written()))
@@ -384,14 +395,25 @@ def ExtractFileTotalsFromCategory(path):
             return file_totals
     return None
 
+def IsTempFile(fname):
+    if r'AppData\Local\Temp' in fname:
+        return True
+    b = os.path.basename(fname)
+    if b.startswith('etilqs_'):
+        return True
+    (f, ext) = os.path.splitext(b)
+    return ext == '.TMP' or ext == '.tmp'
+
 # Change from "null_category" to one of the others to write out counts
 # for each file in that category
 counted_category = null_category
-counted_category = history
+counted_category = preferences
 
 duration = None
 idb_origin_re = re.compile(r'.*\\([^\\]+)\\IndexedDB\\([^\\]+).*$')
-with codecs.open(procmon_log_name, 'r', encoding='utf-8-sig') as csvfile:
+# See comment below.
+# with codecs.open(procmon_log_name, 'r', encoding='utf-8-sig') as csvfile:
+with open(procmon_log_name, 'r') as csvfile:
     first_time = None
     last_time = None
     time_col_idx = None
@@ -401,11 +423,13 @@ with codecs.open(procmon_log_name, 'r', encoding='utf-8-sig') as csvfile:
     result_col_idx = None
     reader = csv.reader(csvfile, delimiter=',', quotechar='"')
     row_idx = 0
-    rename_re = re.compile('.*FileName: (.+)$')
     for row in reader:
         row_idx += 1
         if row_idx == 1:
-            time_col_idx = row.index("Time of Day")
+            # A hack to embed the encoding here, but reading properly (with
+            # codecs) is about 10x slower. Reordering the columns in procmon
+            # will break this.
+            time_col_idx = row.index('\xef\xbb\xbf"Time of Day"')
             op_col_idx = row.index("Operation")
             path_col_idx = row.index("Path")
             detail_col_idx = row.index("Detail")
@@ -426,13 +450,15 @@ with codecs.open(procmon_log_name, 'r', encoding='utf-8-sig') as csvfile:
             if op == 'IRP_MJ_SET_INFORMATION':
                 detail = ParseDetail(row[detail_col_idx])
                 if 'Type' in detail and detail['Type'] == 'SetRenameInformationFile':
-                    file_totals = ExtractFileTotalsFromCategory(path)
-                    if file_totals:
-                        # Move info totals for old file to new file
-                        new_name = detail['FileName']
-                        category = GetCategory(new_name)
-                        file_totals.path = new_name
-                        category.AppendFileTotals(file_totals)
+                    old_name = path
+                    if True:
+                        file_totals = ExtractFileTotalsFromCategory(old_name)
+                        if file_totals:
+                            # Move info totals for old file to new file
+                            new_name = detail['FileName']
+                            category = GetCategory(new_name)
+                            file_totals.path = new_name
+                            category.AppendFileTotals(file_totals)
             elif op == 'IRP_MJ_WRITE' or op == 'FASTIO_WRITE':
                 detail = ParseDetail(row[detail_col_idx])
                 write_bytes = int(detail['Length'].replace(',', ''))
@@ -485,9 +511,9 @@ else:
             amount = category.Written()
         else:
             amount = category.Read()
-        if amount:
-            category.Print(col_width)
-    total.Print(col_width)
+        if not category.Empty():
+            category.Print(col_width, duration)
+    total.Print(col_width, duration)
     print
     seconds_per_day = 86400
     write_bytes_per_sec = float(total.Written()) / duration.seconds
@@ -504,4 +530,4 @@ else:
     print "IndexedDB:"
     print "=========="
     for category in sorted(idb_origin_categories.values(), key=methodcaller(sort_by), reverse=True):
-        category.Print(60)
+        category.Print(60, duration)

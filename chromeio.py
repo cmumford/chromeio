@@ -98,8 +98,12 @@ class Category(object):
 
     @staticmethod
     def GetAmountString(amount, total, duration):
+        percentage = 0
+        # Avoid divide-by-zero errors.
+        if total > 0:
+          100.0 * amount / total
         return "%s=%.1f%%=%s" % (Category.GetBytesString(amount),
-                                100.0 * amount / total,
+                                percentage,
                                 Amount.PerDay(amount, duration))
 
     @staticmethod
@@ -459,10 +463,10 @@ with open(procmon_log_name, 'r') as csvfile:
                             category = GetCategory(new_name)
                             file_totals.path = new_name
                             category.AppendFileTotals(file_totals)
-            elif op == 'IRP_MJ_WRITE' or op == 'FASTIO_WRITE':
+            elif op == 'IRP_MJ_WRITE' or op == 'FASTIO_WRITE' or op == 'WriteFile':
                 detail = ParseDetail(row[detail_col_idx])
                 write_bytes = int(detail['Length'].replace(',', ''))
-            elif op == 'IRP_MJ_READ' or op == 'FASTIO_READ':
+            elif op == 'IRP_MJ_READ' or op == 'FASTIO_READ' or op == 'ReadFile':
                 detail = ParseDetail(row[detail_col_idx])
                 read_bytes = int(detail['Length'].replace(',', ''))
             if read_bytes or write_bytes:

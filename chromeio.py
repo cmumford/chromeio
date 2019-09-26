@@ -38,12 +38,12 @@ class Amount(object):
     @staticmethod
     def ToString(bytes):
         if bytes >= 1024*1024*1024:
-            return "%.1fGB" % (float(bytes) / 1024 / 1024 / 1024)
+            return "%5.1fGB" % (float(bytes) / 1024 / 1024 / 1024)
         if bytes >= 1024*1024:
-            return "%.1fMB" % (float(bytes) / 1024 / 1024)
+            return "%5.1fMB" % (float(bytes) / 1024 / 1024)
         if bytes >= 1024:
-            return "%.1fKB" % (float(bytes) / 1024)
-        return "%dB" % bytes
+            return "%5.1fKB" % (float(bytes) / 1024)
+        return "%5d B" % bytes
 
     @staticmethod
     def PerDay(bytes, duration):
@@ -102,9 +102,9 @@ class Category(object):
         # Avoid divide-by-zero errors.
         if total > 0:
           percentage = 100.0 * amount / total
-        return "%s=%.1f%%=%s" % (Category.GetBytesString(amount),
-                                percentage,
-                                Amount.PerDay(amount, duration))
+        return "%s=%4.1f%%=%s" % (Amount.ToString(amount),
+                                 percentage,
+                                 Amount.PerDay(amount, duration))
 
     @staticmethod
     def GetBothAmounts(read, written, total_read, total_written, duration):

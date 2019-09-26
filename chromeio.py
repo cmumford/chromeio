@@ -101,7 +101,7 @@ class Category(object):
         percentage = 0
         # Avoid divide-by-zero errors.
         if total > 0:
-          100.0 * amount / total
+          percentage = 100.0 * amount / total
         return "%s=%.1f%%=%s" % (Category.GetBytesString(amount),
                                 percentage,
                                 Amount.PerDay(amount, duration))

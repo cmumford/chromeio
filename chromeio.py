@@ -184,6 +184,7 @@ bookmarks = Category("Bookmarks", total)
 crx_install = Category("CRX Install", total)
 web_data = Category("Web Data", total)
 history = Category("History", total)
+visited_links = Category("Visited Links", total)
 quota_manager = Category("Quota Manager", total)
 network_action_predictor = Category("Network Action Predictor", total)
 current_session = Category("Current Session", total)
@@ -225,6 +226,7 @@ categories = [
     temp,
     web_data,
     history,
+    visited_links,
     quota_manager,
     network_action_predictor,
     current_session,
@@ -310,7 +312,9 @@ def GetCategory(path):
         return local_storage
     elif '\\Web Data' in path:
         return web_data
-    elif '\\Visited Links' in path or '\\History' in path:
+    elif '\\Visited Links' in path:
+        return visited_links
+    elif '\\History' in path:
         return history
     elif '\\QuotaManager' in path:
         return quota_manager

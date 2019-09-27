@@ -33,41 +33,40 @@ Here is an example report:
 <pre>
 python chromeio.py path/to/Logfile.CSV
 
-Categories:
-===========
-Cache                  : 56359128 (53.7 MB) (55.4%)
-Temp                   : 17829990 (17.0 MB) (17.5%)
-IndexedDB              : 15484215 (14.8 MB) (15.2%)
-Cookies                : 4760784 (4.5 MB) (4.7%)
-Other                  : 3425280 (3.3 MB) (3.4%)
-Sync Data              : 2260232 (2.2 MB) (2.2%)
-Extensions             : 565680 (552.4 KB) (0.6%)
-Sqlite temp            : 543372 (530.6 KB) (0.5%)
-Local storage          : 246784 (241.0 KB) (0.2%)
-GCM Store              : 97904 (95.6 KB) (0.1%)
-Filesystem             : 68006 (66.4 KB) (0.1%)
-Safe Browsing          : 25712 (25.1 KB) (0.0%)
-GPU Cache              : 6512 (6.4 KB) (0.0%)
-Media Cache            : 5920 (5.8 KB) (0.0%)
-Session storage        : 2448 (2.4 KB) (0.0%)
-Bookmarks              : 0 (0) (0.0%)
-CRX Install            : 0 (0) (0.0%)
-Favicons               : 0 (0) (0.0%)
-Font Cache             : 0 (0) (0.0%)
-Index Journal          : 0 (0) (0.0%)
-JumpList Icons         : 0 (0) (0.0%)
-Local State            : 0 (0) (0.0%)
-PNACL                  : 0 (0) (0.0%)
-Preferences            : 0 (0) (0.0%)
-Shortcuts              : 0 (0) (0.0%)
-Sync Extension Settings: 0 (0) (0.0%)
-Total                  : 101681967 (97.0 MB)
+Counted files (Written):
+=============================
+Total counted: 0
 
-Over 0:16:47, Chrome is
-  reading 35815.1 Bps (2.9 GB/day)
-  writing 100975.1 Bps (8.1 GB/day)
+Categories (Written):
+==========================
+Cache                   : R[129.0MB=70.3%=  2.2GB/day], W[179.7MB=29.4%=  3.1GB/day]
+Sync Data               : R[913.4KB= 0.5%= 15.6MB/day], W[149.0MB=24.4%=  2.5GB/day]
+Other                   : R[211.3KB= 0.1%=  3.5MB/day], W[117.3MB=19.2%=  2.0GB/day]
+Temp                    : R[    0 B= 0.0%=    0 B/day], W[ 80.7MB=13.2%=  1.4GB/day]
+Extensions              : R[ 30.6MB=16.7%=535.0MB/day], W[ 33.8MB= 5.5%=590.3MB/day]
+Cookies                 : R[    0 B= 0.0%=    0 B/day], W[ 18.0MB= 3.0%=314.5MB/day]
+Web Data                : R[    0 B= 0.0%=    0 B/day], W[ 14.6MB= 2.4%=254.4MB/day]
+History                 : R[    0 B= 0.0%=    0 B/day], W[  8.8MB= 1.4%=152.8MB/day]
+Quota Manager           : R[    0 B= 0.0%=    0 B/day], W[  4.5MB= 0.7%= 79.2MB/day]
+GCM Store               : R[    0 B= 0.0%=    0 B/day], W[  3.7MB= 0.6%= 63.9MB/day]
+Current Session         : R[    0 B= 0.0%=    0 B/day], W[144.2KB= 0.0%=  2.4MB/day]
+Safe Browsing           : R[    0 B= 0.0%=    0 B/day], W[121.6KB= 0.0%=  2.1MB/day]
+Top Sites               : R[    0 B= 0.0%=    0 B/day], W[ 40.5KB= 0.0%=675.0KB/day]
+GPU Cache               : R[    0 B= 0.0%=    0 B/day], W[ 19.1KB= 0.0%=253.1KB/day]
+IndexedDB               : R[  1.9MB= 1.0%= 32.9MB/day], W[ 10.4KB= 0.0%=168.8KB/day]
+Local storage           : R[    0 B= 0.0%=    0 B/day], W[  9.5KB= 0.0%= 84.4KB/day]
+Filesystem              : R[ 63.9KB= 0.0%=  1.1MB/day], W[  1.2KB= 0.0%=    0 B/day]
+Session storage         : R[    0 B= 0.0%=    0 B/day], W[  988 B= 0.0%=    0 B/day]
+Service Worker          : R[ 20.8MB=11.4%=363.9MB/day], W[    0 B= 0.0%=    0 B/day]
+Total                   : 640080430=610.4MB
+
+Over 1:22:28, Chrome is:
+  Reading 38900.3 Bps (3.1 GB/day)
+  Writing 129361.4 Bps (10.4 GB/day)
 
 IndexedDB:
 ==========
-Default-https_docs.google.com_0.indexeddb.leveldb           : 15484215 (14.8 MB) (15.2%)
+Profile 1-https_mail.google.com_0.indexeddb.leveldb         : R[    0 B= 0.0%=    0 B/day], W[  5.5KB= 0.0%= 84.4KB/day]
+Default-https_drive.google.com_0.indexeddb.leveldb          : R[  1.9MB= 1.0%= 32.9MB/day], W[  4.4KB= 0.0%=    0 B/day]
+Profile 1-chrome-extension_fpblyyyeebhea_0.indexeddb.leveldb: R[  2.1KB= 0.0%=    0 B/day], W[  458 B= 0.0%=    0 B/day]
 </pre>
